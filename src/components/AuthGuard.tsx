@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createBrowserClient } from '@lib/supabaseBrowser';
 import { usePathname, useRouter } from 'next/navigation';
+import { getLocalUser, onLocalUserChange } from '@lib/localSession';
 
 export default function AuthGuard() {
 	const pathname = usePathname();
 	const router = useRouter();
-	const supabase = createBrowserClient();
 	const [checking, setChecking] = useState(true);
 
 	useEffect(() => {
@@ -16,13 +15,20 @@ export default function AuthGuard() {
 			setChecking(false);
 			return;
 		}
-		supabase.auth.getSession().then(({ data }) => {
-			if (!data.session) {
+		const user = getLocalUser();
+		if (!user) {
+			router.replace('/auth');
+			return;
+		}
+		setChecking(false);
+		const unsubscribe = onLocalUserChange((next) => {
+			if (!next) {
 				router.replace('/auth');
-			} else {
-				setChecking(false);
 			}
 		});
+		return () => {
+			unsubscribe();
+		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [pathname]);
 

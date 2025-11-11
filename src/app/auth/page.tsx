@@ -2,51 +2,51 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@lib/supabaseBrowser';
+import { getLocalUser, setLocalUser, clearLocalUser, onLocalUserChange } from '@lib/localSession';
 
 export const dynamic = 'force-dynamic';
 
 export default function AuthPage() {
 	const supabase = createBrowserClient();
-	const [email, setEmail] = useState('admin@local');
+	const router = useRouter();
+	const [username, setUsername] = useState('admin');
 	const [password, setPassword] = useState('admin');
-	const [session, setSession] = useState<any>(null);
-	const [loading, setLoading] = useState(true);
+	const [currentUser, setCurrentUser] = useState(getLocalUser());
 	const [busy, setBusy] = useState(false);
 	const [message, setMessage] = useState<string | null>(null);
 
 	useEffect(() => {
-		supabase.auth.getSession().then(({ data }) => {
-			setSession(data.session);
-			setLoading(false);
-		});
-		const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-		return () => sub.subscription.unsubscribe();
-	}, [supabase]);
-
-	if (loading) return <div>Loading...</div>;
+		const unsubscribe = onLocalUserChange((user) => setCurrentUser(user));
+		return () => {
+			unsubscribe();
+		};
+	}, []);
 
 	return (
 		<div className="max-w-md space-y-4">
-			{session ? (
+			{currentUser ? (
 				<div className="space-y-3">
-					<div className="text-sm">Logged in as {session.user.email}</div>
+					<div className="text-sm">Logged in as {currentUser.username}</div>
 					<button
 						className="px-3 py-2 bg-gray-200 rounded"
-						onClick={() => supabase.auth.signOut()}
+						onClick={() => {
+							clearLocalUser();
+							setCurrentUser(null);
+						}}
 					>
 						Sign out
 					</button>
 				</div>
 			) : (
 				<div className="space-y-3">
-					<div className="text-sm font-medium">Email & Password</div>
+					<div className="text-sm font-medium">Username & Password</div>
 					<div className="flex flex-col gap-2">
 						<input
-							type="email"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							placeholder="email@example.com"
+							value={username}
+							onChange={(e) => setUsername(e.target.value)}
+							placeholder="username"
 							className="border rounded px-2 py-1"
 						/>
 						<input
@@ -64,8 +64,25 @@ export default function AuthPage() {
 							onClick={async () => {
 								setBusy(true);
 								setMessage(null);
-								const { error } = await supabase.auth.signInWithPassword({ email, password });
-								if (error) setMessage(error.message);
+								const { data, error } = await supabase
+									.from('local_users')
+									.select('user_id, username, password')
+									.eq('username', username)
+									.limit(1)
+									.maybeSingle();
+								if (error) {
+									setMessage(error.message);
+									setBusy(false);
+									return;
+								}
+								if (!data || data.password !== password) {
+									setMessage('Invalid username or password.');
+									setBusy(false);
+									return;
+								}
+								setLocalUser({ id: data.user_id, username: data.username });
+								setCurrentUser({ id: data.user_id, username: data.username });
+								router.replace('/');
 								setBusy(false);
 							}}
 						>
@@ -77,15 +94,34 @@ export default function AuthPage() {
 							onClick={async () => {
 								setBusy(true);
 								setMessage(null);
-								// Create admin user (admin@local/admin) if not exists, then sign in
-								const signup = await supabase.auth.signUp({ email: 'admin@local', password: 'admin' });
-								if (signup.error && !signup.error.message.includes('already registered')) {
-									setMessage(signup.error.message);
+								const existing = await supabase
+									.from('local_users')
+									.select('user_id, username')
+									.eq('username', 'admin')
+									.limit(1)
+									.maybeSingle();
+								let userId = existing.data?.user_id;
+								if (!existing.data) {
+									const inserted = await supabase
+										.from('local_users')
+										.insert({ username: 'admin', password: 'admin' })
+										.select('user_id')
+										.single();
+									if (inserted.error) {
+										setMessage(inserted.error.message);
+										setBusy(false);
+										return;
+									}
+									userId = inserted.data.user_id;
+								}
+								if (!userId) {
+									setMessage('Failed to create admin user.');
 									setBusy(false);
 									return;
 								}
-								const { error } = await supabase.auth.signInWithPassword({ email: 'admin@local', password: 'admin' });
-								if (error) setMessage(error.message);
+								setLocalUser({ id: userId, username: 'admin' });
+								setCurrentUser({ id: userId, username: 'admin' });
+								router.replace('/');
 								setBusy(false);
 							}}
 						>

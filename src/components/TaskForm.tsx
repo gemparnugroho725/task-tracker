@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createBrowserClient } from '@lib/supabaseBrowser';
+import { getLocalUser } from '@lib/localSession';
 
 export default function TaskForm() {
 	const supabase = createBrowserClient();
@@ -12,7 +13,7 @@ export default function TaskForm() {
 	async function addTask() {
 		if (!title) return;
 		setSaving(true);
-		const { data: { user } } = await supabase.auth.getUser();
+		const user = getLocalUser();
 		if (!user) {
 			alert('Please sign in first.');
 			setSaving(false);

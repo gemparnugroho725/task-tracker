@@ -5,6 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@lib/supabaseBrowser';
+import { getLocalUser } from '@lib/localSession';
 
 type TaskEvent = {
 	id: string;
@@ -16,8 +17,12 @@ export default function CalendarClient() {
 	const supabase = createBrowserClient();
 	const [events, setEvents] = useState<TaskEvent[]>([]);
 
-	async function load() {
-		const { data } = await supabase.from('tasks').select('id,title,due_at').not('due_at', 'is', null);
+	async function load(userId: string) {
+		const { data } = await supabase
+			.from('tasks')
+			.select('id,title,due_at')
+			.eq('user_id', userId)
+			.not('due_at', 'is', null);
 		setEvents(
 			(data ?? []).map((t) => ({
 				id: t.id as string,
@@ -28,7 +33,9 @@ export default function CalendarClient() {
 	}
 
 	useEffect(() => {
-		load();
+		const user = getLocalUser();
+		if (!user) return;
+		load(user.id);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 

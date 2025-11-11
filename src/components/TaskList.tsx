@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@lib/supabaseBrowser';
+import { getLocalUser } from '@lib/localSession';
 
 type Task = {
 	id: string;
@@ -15,21 +16,26 @@ export default function TaskList() {
 	const supabase = createBrowserClient();
 	const [tasks, setTasks] = useState<Task[]>([]);
 
-	async function load() {
-		const { data: { user } } = await supabase.auth.getUser();
-		if (!user) return;
+	async function load(userId: string) {
 		const { data } = await supabase
 			.from('tasks')
 			.select('*')
+			.eq('user_id', userId)
 			.order('created_at', { ascending: false });
 		setTasks(data ?? []);
 	}
 
 	useEffect(() => {
-		load();
+		const user = getLocalUser();
+		if (!user) return;
+		load(user.id);
 		const channel = supabase
 			.channel('public:tasks')
-			.on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, load)
+			.on(
+				'postgres_changes',
+				{ event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${user.id}` },
+				() => load(user.id)
+			)
 			.subscribe();
 		return () => {
 			channel.unsubscribe();
