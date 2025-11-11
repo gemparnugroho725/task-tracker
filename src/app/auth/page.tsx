@@ -4,6 +4,8 @@
 import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@lib/supabaseBrowser';
 
+export const dynamic = 'force-dynamic';
+
 export default function AuthPage() {
 	const supabase = createBrowserClient();
 	const [email, setEmail] = useState('');

@@ -3,6 +3,8 @@ import TaskForm from '@components/TaskForm';
 import TaskList from '@components/TaskList';
 import StartGoogleButton from '@components/StartGoogleButton';
 
+export const dynamic = 'force-dynamic';
+
 export default function Page() {
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
