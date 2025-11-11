@@ -11,7 +11,7 @@ body {
 }
 
 /* FullCalendar styles */
-@import '@fullcalendar/core/main.css';
-@import '@fullcalendar/daygrid/main.css';
+@import '@fullcalendar/core/index.css';
+@import '@fullcalendar/daygrid/index.css';
 
 
