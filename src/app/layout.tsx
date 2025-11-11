@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { ReactNode } from 'react';
+import AuthGuard from '@components/AuthGuard';
 
 export const metadata: Metadata = {
 	title: 'Task Tracker',
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 	return (
 		<html lang="en">
 			<body>
+				<AuthGuard />
 				<div className="min-h-screen">
 					<header className="border-b bg-white">
 						<div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
