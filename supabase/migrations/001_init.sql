@@ -8,6 +8,9 @@ create table if not exists public.tasks (
   created_at timestamptz not null default now()
 );
 
+-- ensure uuid generator is available
+create extension if not exists pgcrypto with schema public;
+
 create table if not exists public.user_google_tokens (
   user_id uuid primary key,
   access_token text,
@@ -25,8 +28,20 @@ create policy "tasks owner can read"
   on public.tasks for select
   using (auth.uid() = user_id);
 
-create policy "tasks owner can modify"
-  on public.tasks for insert with check (auth.uid() = user_id)
+-- insert: only with check (no USING for INSERT)
+create policy "tasks owner can insert"
+  on public.tasks for insert
+  with check (auth.uid() = user_id);
+
+-- update: must be owner for row visibility and new values
+create policy "tasks owner can update"
+  on public.tasks for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- delete: only owner can delete
+create policy "tasks owner can delete"
+  on public.tasks for delete
   using (auth.uid() = user_id);
 
 create policy "user tokens owner can read"

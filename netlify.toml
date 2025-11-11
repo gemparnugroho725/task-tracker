@@ -13,7 +13,6 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
 
 [[scheduled.functions]]
-  name = "sync"
-  cron = "*/15 * * * *"
+  # Removed scheduled sync (Google Calendar integration dropped)
 
 

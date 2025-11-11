@@ -7,6 +7,8 @@ export const metadata: Metadata = {
 	description: 'Tasks tracking with Google Calendar sync'
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({ children }: { children: ReactNode }) {
 	return (
 		<html lang="en">
